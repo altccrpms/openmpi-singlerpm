@@ -1,33 +1,19 @@
 # We only compile with gcc, but other people may want other compilers.
 # Set the compiler here.
-%global opt_cc icc
+%global opt_cc gcc
 # Optional CFLAGS to use with the specific compiler...gcc doesn't need any,
 # so uncomment and define to use
-%global intel_flags -O3 -axSSE2,SSE4.1,SSE4.2
-# -ipo needs the use of AR=xiar but fails with:
-#  CCLD   opal_wrapper
-#ipo: warning #11021: unresolved opal_few
-#        Referenced in /tmp/ipo_iccGsSFs6.o
-#ipo: warning #11021: unresolved opal_basename
-#        Referenced in /tmp/ipo_iccGsSFs6.o
-#ipo: remark #11001: performing single-file optimizations
-#ipo: remark #11006: generating object file /tmp/ipo_iccGsSFs6.o
-#/tmp/ipo_iccGsSFs6.o: In function `main':
-#ipo_out.c:(.text+0xa3): undefined reference to `opal_basename'
-#ipo_out.c:(.text+0xc0d): undefined reference to `opal_few'
-#../../../opal/.libs/libopen-pal.so: undefined reference to `lt_libltdlc_LTX_preloaded_symbols'
-
-%global opt_cflags %{intel_flags}
-%global opt_cxx icpc
-%global opt_cxxflags %{intel_flags}
-%global opt_fc ifort
-%global opt_fcflags %{intel_flags}
+%global opt_cflags ${RPM_OPT_FLAGS/-D_FORTIFY_SOURCE=2/}
+%global opt_cxx g++
+#global opt_cxxflags
+%global opt_fc pgf95 -noswitcherror
+%global opt_fcflags -fastsse
 
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 # Optional name suffix to use...we leave it off when compiling with gcc, but
 # for other compiled versions to install side by side, it will need a
 # suffix in order to keep the names from conflicting.
-%global _cc_name_suffix -intel
+%global _cc_name_suffix -pgf
 
 Name:			openmpi161%{?_cc_name_suffix}
 Version:		1.6.1
