@@ -29,28 +29,34 @@
 # suffix in order to keep the names from conflicting.
 %global _cc_name_suffix -intel
 
-Name:           openmpi161%{?_cc_name_suffix}
-Version:        1.6.1
-Release:        1%{?dist}.cora.1
-Summary:        Open Message Passing Interface
+Name:			openmpi161%{?_cc_name_suffix}
+Version:		1.6.1
+Release:		1%{?dist}.cora.1
+Summary:		Open Message Passing Interface
+Group:			Development/Libraries
+License:		BSD, MIT and Romio
+URL:			http://www.open-mpi.org/
 
-Group:          Development/Libraries
-License:        BSD
-URL:            http://www.open-mpi.org/
 # We can't use %{name} here because of _cc_name_suffix
-Source0:       	http://www.open-mpi.org/software/ompi/v1.6/downloads/openmpi-%{version}.tar.bz2
-Source1:	openmpi.pc.in
-Source2:	openmpi.module.in
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires:  numactl-devel
-BuildRequires:  valgrind
-BuildRequires:  libibverbs-devel, opensm-devel
-BuildRequires:  binutils-devel
-#%ifnarch ppc
-#BuildRequires:  dapl-devel
-#%endif
-Provides:       mpi
-Requires:       environment-modules
+Source0:		http://www.open-mpi.org/software/ompi/v1.6/downloads/openmpi-%{version}.tar.bz2
+Source1:		openmpi.module.in
+BuildRoot:		%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+# ARM HW doesn't support NUMA
+%ifnarch %{arm}
+BuildRequires:		numactl-devel
+%endif
+#sparc 64 doesn't have valgrind
+%ifnarch %{sparc}
+BuildRequires:		valgrind-devel
+%endif
+BuildRequires:		libibverbs-devel >= 1.1.3, opensm-devel > 3.3.0
+BuildRequires:		librdmacm-devel libibcm-devel
+BuildRequires:		hwloc-devel
+BuildRequires:		python libtool-ltdl-devel
+BuildRequires:		libesmtp-devel
+
+Provides:		mpi
+Requires:		environment-modules
                                                                                    
 #We don't want to be beholden to the proprietary libraries
 %global    _use_internal_dependency_generator 0
@@ -103,11 +109,23 @@ researchers. For more information, see http://www.open-mpi.org/ .
 
 %prep
 %setup -q -n openmpi-%{version}
-# Kill the stack protection and fortify source stuff...it slows things down
-# and openmpi hasn't been audited for it yet
-#RPM_OPT_FLAGS=`echo $RPM_OPT_FLAGS | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//' | sed -e 's/-fstack-protector//'`
+# Make sure we don't use the local libltdl library
+rm -r opal/libltdl
 
+%build
 ./configure --prefix=/opt/%{mpidir} \
+%ifnarch %{arm}
+	--with-libnuma=/usr \
+%endif
+	--with-openib=/usr \
+	--with-sge \
+%ifnarch %{sparc}
+	--with-valgrind \
+	--enable-memchecker \
+%endif
+	--with-esmtp \
+	--with-hwloc=/usr \
+	--with-libltdl=/usr \
 	CC=%{opt_cc} CXX=%{opt_cxx} \
 	F77="%{opt_fc}" \
 	FC="%{opt_fc}" \
@@ -117,8 +135,6 @@ researchers. For more information, see http://www.open-mpi.org/ .
 	FFLAGS="%{?opt_fcflags}" \
 	FCFLAGS="%{?opt_fcflags}" \
 	AR="xiar"
-
-%build
 make %{?_smp_mflags}
 
 %install
@@ -129,7 +145,7 @@ find %{buildroot}/opt/%{mpidir}/lib -name \*.la | xargs rm
 # Make the environment-modules file
 mkdir -p %{buildroot}%{_sysconfdir}/modulefiles/mpi/`dirname %{mpidir}`
 # Since we're doing our own substitution here, use our own definitions.
-sed 's#@MPIDIR@#'%{mpidir}'#g' < %SOURCE2 > %{buildroot}%{_sysconfdir}/modulefiles/mpi/%{mpidir}
+sed 's#@MPIDIR@#'%{mpidir}'#g' < %SOURCE1 > %{buildroot}%{_sysconfdir}/modulefiles/mpi/%{mpidir}
 
 
 %clean
