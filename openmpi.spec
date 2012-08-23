@@ -41,17 +41,16 @@ URL:			http://www.open-mpi.org/
 Source0:		http://www.open-mpi.org/software/ompi/v1.6/downloads/openmpi-%{version}.tar.bz2
 Source1:		openmpi.module.in
 BuildRoot:		%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-# ARM HW doesn't support NUMA
-%ifnarch %{arm}
-BuildRequires:		numactl-devel
-%endif
 #sparc 64 doesn't have valgrind
 %ifnarch %{sparc}
 BuildRequires:		valgrind-devel
 %endif
 BuildRequires:		libibverbs-devel >= 1.1.3, opensm-devel > 3.3.0
 BuildRequires:		librdmacm-devel libibcm-devel
+# EL6 hwloc is too old
+%if 0%{?fedora}
 BuildRequires:		hwloc-devel
+%endif
 BuildRequires:		python libtool-ltdl-devel
 BuildRequires:		libesmtp-devel
 
@@ -114,9 +113,6 @@ rm -r opal/libltdl
 
 %build
 ./configure --prefix=/opt/%{mpidir} \
-%ifnarch %{arm}
-	--with-libnuma=/usr \
-%endif
 	--with-openib=/usr \
 	--with-sge \
 %ifnarch %{sparc}
@@ -124,7 +120,9 @@ rm -r opal/libltdl
 	--enable-memchecker \
 %endif
 	--with-esmtp \
+%if 0%{?fedora}
 	--with-hwloc=/usr \
+%endif
 	--with-libltdl=/usr \
 	CC=%{opt_cc} CXX=%{opt_cxx} \
 	F77="%{opt_fc}" \
