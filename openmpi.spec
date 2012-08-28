@@ -14,10 +14,17 @@
 # for other compiled versions to install side by side, it will need a
 # suffix in order to keep the names from conflicting.
 %global _cc_name_suffix -pgf
+                                                                                   
+#We don't want to be beholden to the proprietary libraries
+%global    _use_internal_dependency_generator 0
+%global    __find_requires %{nil}
+
+#Useless debuginfo
+%global debug_package %{nil}
 
 Name:			openmpi161%{?_cc_name_suffix}
 Version:		1.6.1
-Release:		1%{?dist}.cora.1
+Release:		1%{?dist}
 Summary:		Open Message Passing Interface
 Group:			Development/Libraries
 License:		BSD, MIT and Romio
@@ -42,14 +49,14 @@ BuildRequires:		libesmtp-devel
 
 Provides:		mpi
 Requires:		environment-modules
-                                                                                   
-#We don't want to be beholden to the proprietary libraries
-%global    _use_internal_dependency_generator 0
-%global    __find_requires %{nil}
 
-#Useless debuginfo
-%global debug_package %{nil}
+# s390 is unlikely to have the hardware we want, and some of the -devel
+# packages we require aren't available there.
+ExcludeArch: s390 s390x
 
+# Private openmpi libraries
+%global __provides_exclude_from %{_libdir}/openmpi/lib/(lib(mca|o|v)|openmpi/).*.so
+%global __requires_exclude lib(mca|o|v).*
 
 %description
 Open MPI is an open source, freely available implementation of both the 
